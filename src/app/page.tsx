@@ -1,65 +1,131 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useEffect } from "react";
+import { MainCanvas } from "@/components/MainCanvas";
+import {
+  DEFAULT_SCROLL_POINTS,
+  type ScrollPoint,
+} from "@/config/scrollPoints";
+import FirstSection from "@/components/sections/first";
+import SecondSection from "@/components/sections/second";
+import ThirdSection from "@/components/sections/third";
+import FourthSection from "@/components/sections/fourth";
+import FifthSection from "@/components/sections/fifth";
+import Footer from "@/components/footer";
+
+const sections = [
+  {
+    id: 1,
+    component: <FirstSection />,
+  },
+  {
+    id: 2,
+    component: <SecondSection />,
+  },
+
+  {
+    id: 3,
+    component: <ThirdSection />,
+  },
+  {
+    id: 4,
+    component: <FourthSection />,
+  },
+  {
+    id: 5,
+    component: <FifthSection />,
+  },
+]
+
+/** Number of full-viewport sections that slide in from the right. */
+const SECTION_COUNT = sections.length;
+
+/** Total vertical scroll height (vh). User scrolls down; content translates left. */
+const TOTAL_SCROLL_VH = SECTION_COUNT * 100;
 
 export default function Home() {
+  const [scrollProgress, setScrollProgress] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const totalScroll =
+        (TOTAL_SCROLL_VH / 100) * window.innerHeight - window.innerHeight;
+      const p =
+        totalScroll <= 0
+          ? 0
+          : Math.min(1, Math.max(0, window.scrollY / totalScroll));
+      setScrollProgress(p);
+    };
+
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const scrollPoints: ScrollPoint[] = DEFAULT_SCROLL_POINTS;
+
+  /** Horizontal offset: at progress 0 show first section; at 1 show last. */
+  const translateXPercent = -scrollProgress * (SECTION_COUNT - 1) * 100;
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <main className="relative w-screen overflow-x-hidden">
+      {/* Fixed background: 3D model stays in place. */}
+      <div className="fixed inset-0 z-0 h-screen w-screen">
+        <MainCanvas
+          modelPath="/models/t.usdz"
+          modelType="usdz"
+          scrollProgress={scrollProgress}
+          scrollPoints={scrollPoints}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+              {/* <MainCanvas
+          modelPath="/models/tuf.glb"
+          modelType="glb"
+          scrollProgress={scrollProgress}
+          scrollPoints={scrollPoints}
+        /> */}
+      </div>
+      <div>
+
+      </div>
+
+      {/* Fixed viewport "window": horizontal strip slides right-to-left as user scrolls down. */}
+      <div className="fixed inset-0 z-10 overflow-hidden">
+        <div
+          className="h-full flex flex-nowrap will-change-transform"
+          style={{
+            width: `${SECTION_COUNT * 100}vw`,
+            transform: `translateX(${translateXPercent}vw)`,
+          }}
+        >
+          {sections.map((section) => (
+            <section key={section.id} className="flex shrink-0 w-full flex-col items-center justify-center px-6 py-20 text-center" style={{ width: "100vw" }}>
+              {section.component}
+            </section>
+          ))}
+          {/* {Array.from({ length: SECTION_COUNT }, (_, i) => (
+            <section
+              key={i}
+              className="flex shrink-0 w-full flex-col items-center justify-center px-6 py-20 text-center"
+              style={{ width: "100vw" }}
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+              <h2 className="text-3xl font-semibold text-white drop-shadow-lg md:text-5xl">
+                Section {i + 1}
+              </h2>
+              <p className="mt-4 max-w-xl text-lg text-white/90 drop-shadow">
+                Scroll to discover. Sections slide in from the right.
+              </p>
+            </section>
+          ))} */}
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+      </div>
+
+      {/* Invisible tall spacer: creates vertical scroll distance. */}
+      <div
+        className="relative z-0"
+        style={{ height: `${TOTAL_SCROLL_VH}vh` }}
+        aria-hidden
+      />
+        <Footer />
+    </main>
   );
 }

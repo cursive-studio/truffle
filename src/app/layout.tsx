@@ -1,6 +1,20 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
+import Link from "next/link";
+import PreOrder from "@/components/pre-order";
+import Footer from "@/components/footer";
+
+const geistPixel = localFont({
+  src: "../../public/fonts/GeistPixel-Triangle.ttf",
+  variable: "--font-geist-pixel-triangle",
+});
+
+const instrumentSans = localFont({
+  src: "../../public/fonts/InstrumentSans-variable.ttf",
+  variable: "--font-instrument-sans",
+});
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,10 +39,23 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`
+          ${geistSans.variable} 
+          ${geistMono.variable} 
+          ${geistPixel.variable} 
+          ${instrumentSans.variable} antialiased`
+        }
       >
+        <header className="fixed top-10 left-10 w-full h-16 flex items-center justify-between z-999999999">
+          <Link href="/">
+           <p className="px-0 mx-0 text-white" style={{ fontFamily: 'var(--font-instrument-sans)', fontSize: '32px', }}>truffle <span className="px-0 mx-0 text-white" style={{ fontFamily: 'var(--font-geist-pixel-triangle)', fontSize: '32px',  }}>os</span></p>
+          </Link>
+        </header>
         {children}
+        <PreOrder />
+        <Footer />
       </body>
     </html>
+
   );
 }
