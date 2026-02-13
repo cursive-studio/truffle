@@ -1,80 +1,21 @@
 "use client";
 
-import { useRef, Suspense, useLayoutEffect, useMemo, useEffect } from "react";
+import { useRef, Suspense, useEffect, useMemo } from "react";
 import { useFrame, useLoader } from "@react-three/fiber";
 import { useGLTF, useFBX } from "@react-three/drei";
 import * as THREE from "three";
 import type { Group } from "three";
 import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import { USDLoader } from "three/examples/jsm/loaders/USDLoader.js";
-
-/** Creates a silver matcap texture via canvas (sphere gradient). */
-function createSilverMatcapTexture(): THREE.Texture {
-  const size = 256;
-  const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext("2d")!;
-  const center = size / 2;
-  const radius = center - 2;
-  const gradient = ctx.createRadialGradient(
-    center - radius * 0.4,
-    center - radius * 0.4,
-    0,
-    center,
-    center,
-    radius * 1.2
-  );
-  gradient.addColorStop(0, "#e8e8e8");
-  gradient.addColorStop(0.4, "#a0a0a0");
-  gradient.addColorStop(0.7, "#606060");
-  gradient.addColorStop(1, "#383838");
-  ctx.fillStyle = "#505050";
-  ctx.fillRect(0, 0, size, size);
-  ctx.fillStyle = gradient;
-  ctx.beginPath();
-  ctx.arc(center, center, radius, 0, Math.PI * 2);
-  ctx.fill();
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  return texture;
-}
-
-function createSilverMatcapMaterial(): THREE.MeshMatcapMaterial {
-  const matcap = createSilverMatcapTexture();
-  return new THREE.MeshMatcapMaterial({
-    matcap,
-    wireframe: true,
-    side: THREE.DoubleSide,
-  });
-}
-
-/** Wireframe material with emissive for "glow from inside" pulse effect. */
-function createPulsableWireframeMaterial(): THREE.MeshStandardMaterial {
-  return new THREE.MeshStandardMaterial({
-    color: "#c0c0c0",
-    wireframe: true,
-    side: THREE.DoubleSide,
-    emissive: "#aaddff",
-    emissiveIntensity: 0,
-  });
-}
-
-function applyModelMaterial(
-  root: THREE.Object3D,
-  material: THREE.Material
-) {
-  root.traverse((node) => {
-    if (node instanceof THREE.Mesh && node.isMesh) {
-      node.material = material;
-    }
-  });
-}
+import {
+  createTruffleMaterial,
+  applyTruffleMaterialToMesh,
+} from "@/lib/trufflePreset";
 
 export type HeroModelType = "glb" | "obj" | "fbx" | "usdz";
 
-const DEFAULT_MODEL_PATH = "/models/ttrr_2.fbx";
-const DEFAULT_MODEL_TYPE: HeroModelType = "fbx";
+const DEFAULT_MODEL_PATH = "/models/truffleOS_machine_v4-compressed.glb";
+const DEFAULT_MODEL_TYPE: HeroModelType = "glb";
 
 function clearLoaderCache(type: HeroModelType, path: string) {
   try {
@@ -114,14 +55,13 @@ interface MainModelProps {
   scrollRotationY?: number;
   /** Z rotation in radians, e.g. from scroll progress. */
   scrollRotationZ?: number;
-  /** Called when the model has finished loading. */
   /** X rotation in radians, e.g. from scroll progress. */
   scrollRotationX?: number;
   /** If true, skip the scale/rotation entry animation and show at final state. */
   disableEntryAnimation?: boolean;
   /** Mouse-follow tilt. Omit or pass null to disable. */
   mouseTilt?: MouseTiltConfig | null;
-  /** 0–1 intensity for emissive pulse effect (e.g. from scroll). When > 0, wireframe glows from within. */
+  /** 0–1 intensity for emissive pulse effect (e.g. from scroll). When > 0, mesh glows from within. */
   pulseIntensity?: number;
   onLoaded?: () => void;
 }
@@ -172,11 +112,18 @@ function MainModelInner({
 }: MainModelProps) {
   const groupRef = useRef<Group>(null);
   const timeRef = useRef(0);
-  const matcapMaterial = useMemo(() => createSilverMatcapMaterial(), []);
-  const pulsableMaterial = useMemo(() => createPulsableWireframeMaterial(), []);
+  const bounceTimeRef = useRef(0);
+  const materialAppliedRef = useRef(false);
   const entryElapsed = useRef(0);
   const mousePos = useRef({ x: 0, y: 0 });
   const currentTilt = useRef({ x: 0, y: 0 });
+
+  const truffleMaterial = useMemo(() => {
+    const mat = createTruffleMaterial();
+    mat.emissive = new THREE.Color(0x000000);
+    mat.emissiveIntensity = 0;
+    return mat;
+  }, []);
 
   const tiltConfig = mouseTilt
     ? { ...DEFAULT_MOUSE_TILT, ...mouseTilt }
@@ -199,40 +146,49 @@ function MainModelInner({
 
   useEffect(() => {
     entryElapsed.current = 0;
+    materialAppliedRef.current = false;
   }, [modelPath, modelType]);
 
   useEffect(() => {
     return () => clearLoaderCache(modelType, modelPath);
   }, [modelType, modelPath]);
 
-  const activeMaterial = pulseIntensity > 0 ? pulsableMaterial : matcapMaterial;
-
-  useLayoutEffect(() => {
-    const group = groupRef.current;
-    if (!group) return;
-    applyModelMaterial(group, activeMaterial);
-  }, [activeMaterial, modelPath, modelType]);
-
+  // Dispose material on unmount
   useEffect(() => {
-    return () => {
-      matcapMaterial.dispose();
-      matcapMaterial.matcap?.dispose();
-      pulsableMaterial.dispose();
-    };
-  }, [matcapMaterial, pulsableMaterial]);
+    return () => { truffleMaterial.dispose(); };
+  }, [truffleMaterial]);
 
   useFrame((_, delta) => {
     const group = groupRef.current;
     if (!group) return;
 
+    // Apply material to meshes every frame until successful.
+    // This handles async model loading, Strict Mode double-mounts, and key-based remounts.
+    if (!materialAppliedRef.current) {
+      let meshCount = 0;
+      group.traverse((obj) => {
+        if (obj instanceof THREE.Mesh && obj.isMesh) meshCount++;
+      });
+      if (meshCount > 0) {
+        applyTruffleMaterialToMesh(group, truffleMaterial);
+        materialAppliedRef.current = true;
+      }
+    }
+
+    bounceTimeRef.current += delta;
+    const bt = bounceTimeRef.current;
+    const bounceY = 0.003 * Math.sin(bt * 0.1);
+    const bounceScale = 1 + 0.004 * Math.sin(bt * 1.8 + 0.3);
+
+    // Pulse emissive glow
     if (pulseIntensity > 0) {
       timeRef.current += delta;
       const t = timeRef.current;
       const pulse = 0.5 + 0.5 * Math.sin(t * 2.5);
-      (pulsableMaterial as THREE.MeshStandardMaterial).emissiveIntensity =
-        pulseIntensity * (0.5 + pulse * 2.2);
+      truffleMaterial.emissive.setHex(0xaaddff);
+      truffleMaterial.emissiveIntensity = pulseIntensity * (0.3 + pulse * 0.6);
     } else {
-      (pulsableMaterial as THREE.MeshStandardMaterial).emissiveIntensity = 0;
+      truffleMaterial.emissiveIntensity = 0;
     }
 
     if (tiltConfig) {
@@ -250,10 +206,10 @@ function MainModelInner({
     const tiltX = currentTilt.current.x;
     const tiltY = currentTilt.current.y;
 
-    group.position.set(position[0], position[1], position[2]);
+    group.position.set(position[0], position[1] + bounceY, position[2]);
 
     if (disableEntryAnimation) {
-      group.scale.setScalar(1);
+      group.scale.setScalar(bounceScale);
       group.rotation.x = rotation[0] + scrollRotationX + tiltX;
       group.rotation.y = rotation[1] + scrollRotationY + tiltY;
       group.rotation.z = rotation[2] + scrollRotationZ;
@@ -263,12 +219,12 @@ function MainModelInner({
       const eased = easeOutCubic(t);
 
       if (t < 1) {
-        group.scale.setScalar(eased);
+        group.scale.setScalar(eased * bounceScale);
         group.rotation.x = rotation[0] * eased + scrollRotationX + tiltX;
         group.rotation.y = rotation[1] * eased + tiltY;
         group.rotation.z = rotation[2] * eased;
       } else {
-        group.scale.setScalar(1);
+        group.scale.setScalar(bounceScale);
         group.rotation.x = rotation[0] + scrollRotationX + tiltX;
         group.rotation.y = rotation[1] + scrollRotationY + tiltY;
         group.rotation.z = rotation[2] + scrollRotationZ;

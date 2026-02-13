@@ -74,18 +74,18 @@ export default function Home() {
 
   return (
     <main className="relative w-screen overflow-x-hidden">
-      <div className="h-screen w-screen">
+      {/* <div className="h-screen w-screen">
         <HeroCanvas
           scrollProgress={scrollProgress}
           modelPath="/models/ttrr3.fbx"
           modelType="fbx"
         />
-      </div>
+      </div> */}
       {/* Fixed background: 3D model stays in place. */}
       <div className="fixed inset-0 z-0 h-screen w-screen">
         <MainCanvas
-          modelPath="/models/t.usdz"
-          modelType="usdz"
+          // modelPath="/models/truffleOS_machine_v4-compressed.glb"
+          // modelType="glb"
           scrollProgress={scrollProgress}
           scrollPoints={scrollPoints}
         />

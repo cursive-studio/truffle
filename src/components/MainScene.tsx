@@ -3,8 +3,8 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import type { WebGLRenderer } from "three";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Environment } from "@react-three/drei";
-import { MainModel, type HeroModelType } from "./MainModel";
+import { OrbitControls } from "@react-three/drei";
+import { MainModel, type HeroModelType } from "@/components/MainModel";
 import {
   getModelStateAtScroll,
   getPulseIntensityAtScroll,
@@ -12,11 +12,11 @@ import {
 } from "@/config/scrollPoints";
 
 /** Default hero model when not passed via props (e.g. from route). */
-const DEFAULT_MAIN_MODEL_PATH = "/models/hitem3d.fbx";
-const DEFAULT_MAIN_MODEL_TYPE = "fbx" as HeroModelType;
+const DEFAULT_MAIN_MODEL_PATH = "/models/t.usdz";
+const DEFAULT_MAIN_MODEL_TYPE = "usdz" as HeroModelType;
 
 /** Default model scale, rotation, and position when no scroll points. */
-const DEFAULT_SCALE = 800.2;
+const DEFAULT_SCALE = 400.2;
 const DEFAULT_ROTATION: [number, number, number] = [1.7, 3.3, 4.3];
 const DEFAULT_POSITION: [number, number, number] = [0, 0, 0];
 
@@ -146,17 +146,14 @@ export function MainScene({
           far: 1000,
         }}
         gl={glOptions}
-        dpr={isHeavyFormat ? 1 : [1, 2]}
+        dpr={1}
         onCreated={onCreated}
       >
         <color attach="background" args={["#0a0a0a"]} />
-        <ambientLight intensity={0.4} color="#ffffff" />
-        <ambientLight intensity={0.3} color="#4488ff" />
-        {/* <directionalLight position={[0, 10, 5]} intensity={2} color="#ffffff" /> */}
-        {/* <directionalLight position={[0, 10, 0]} intensity={2.5} color="#ffffff" /> */}
-        <directionalLight position={[5, 5, 5]} intensity={0.8} color="#ffffff" />
-        <directionalLight position={[-5, 5, -5]} intensity={0.5} color="#ffffff" />
-        {!isHeavyFormat && <Environment preset="city" />}
+        <ambientLight intensity={0.6} color="#ffffff" />
+        <directionalLight position={[5, 5, 5]} intensity={1.5} color="#ffffff" />
+        <directionalLight position={[-5, 3, -3]} intensity={0.8} color="#c0d0ff" />
+        <directionalLight position={[0, -3, 5]} intensity={0.4} color="#ffffff" />
         <OrbitControls
           enableZoom={false}
           enablePan={false}
