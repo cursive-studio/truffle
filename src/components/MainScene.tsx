@@ -7,6 +7,7 @@ import { OrbitControls, Environment } from "@react-three/drei";
 import { MainModel, type HeroModelType } from "./MainModel";
 import {
   getModelStateAtScroll,
+  getPulseIntensityAtScroll,
   type ScrollPoint,
 } from "@/config/scrollPoints";
 
@@ -172,6 +173,11 @@ export function MainScene({
             position={modelState.position}
             disableEntryAnimation
             mouseTilt={{ maxTilt: 0.08, smoothness: 0.08 }}
+            pulseIntensity={
+              scrollPoints
+                ? getPulseIntensityAtScroll(scrollProgress, scrollPoints)
+                : 0
+            }
             onLoaded={() => setModelLoaded(true)}
           />
         </group>

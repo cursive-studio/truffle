@@ -12,6 +12,11 @@ export interface ScrollPoint {
   scale?: number;
   /** Model position [x, y, z]. */
   position?: [number, number, number];
+  /** Effects active at this scroll point. */
+  effects?: {
+    /** Enable an animating pulsing light on the model when scroll reaches this point. */
+    pulse?: boolean;
+  };
 }
 
 /** Interpolate rotation, scale, and position at a given scroll progress from keyframes. */
@@ -80,6 +85,19 @@ export function getModelStateAtScroll(
   };
 }
 
+/** Returns 0–1 pulse intensity when scroll is at/near a point with effects.pulse. Ramps in over ~5% scroll. */
+export function getPulseIntensityAtScroll(
+  scrollProgress: number,
+  points: ScrollPoint[]
+): number {
+  const pulsePoint = points.find((p) => p.effects?.pulse);
+  if (!pulsePoint) return 0;
+  const rampStart = Math.max(0, pulsePoint.at - 0.05);
+  if (scrollProgress < rampStart) return 0;
+  if (scrollProgress >= pulsePoint.at) return 1;
+  return (scrollProgress - rampStart) / (pulsePoint.at - rampStart);
+}
+
 /** Example: model spins on Z axis over scroll (one full turn). Scale kept small to avoid GPU overload. */
 const BASE_X = 1.7;
 const BASE_Y = 3.3;
@@ -92,8 +110,9 @@ export const DEFAULT_SCROLL_POINTS: ScrollPoint[] = [
   { at: 0.25, position: [-0.02, 0, 0], rotation: [BASE_X, BASE_Y - Math.PI /1.8, BASE_Z + Math.PI * 0.5], scale: BASE_SCALE * 1.2 },
   { at: 0.5, position: [-0.02, 0, 0], rotation: [BASE_X, BASE_Y - Math.PI /1.8, BASE_Z + Math.PI * 0.5], scale: BASE_SCALE * 1.2 },
   { at: 0.75, position: [-0.02, 0, 0], rotation: [BASE_X, BASE_Y - Math.PI /1.8, BASE_Z + Math.PI * 0.5], scale: BASE_SCALE * 1.2 },
+  { at: 0.85, position: [-0.02, 0, 0], rotation: [BASE_X, BASE_Y - Math.PI /1.8, BASE_Z + Math.PI * 0.5], scale: BASE_SCALE * 0.8, },
 
   // { at: 0.5, rotation: [BASE_X, BASE_Y, BASE_Z + Math.PI], scale: BASE_SCALE * 0, },
   // { at: 0.75, rotation: [BASE_X, BASE_Y, BASE_Z + Math.PI * 1.5], scale: BASE_SCALE * 0 },
-  { at: 1, rotation: [BASE_X, BASE_Y, BASE_Z + Math.PI * 2], scale: BASE_SCALE },
+  { at: 1, position: [0, 0, 0], rotation: [BASE_X, BASE_Y, BASE_Z], scale: BASE_SCALE * 0.8, effects: { pulse: true } },
 ];

@@ -49,6 +49,17 @@ function createSilverMatcapMaterial(): THREE.MeshMatcapMaterial {
   });
 }
 
+/** Wireframe material with emissive for "glow from inside" pulse effect. */
+function createPulsableWireframeMaterial(): THREE.MeshStandardMaterial {
+  return new THREE.MeshStandardMaterial({
+    color: "#c0c0c0",
+    wireframe: true,
+    side: THREE.DoubleSide,
+    emissive: "#aaddff",
+    emissiveIntensity: 0,
+  });
+}
+
 function applyModelMaterial(
   root: THREE.Object3D,
   material: THREE.Material
@@ -110,6 +121,8 @@ interface MainModelProps {
   disableEntryAnimation?: boolean;
   /** Mouse-follow tilt. Omit or pass null to disable. */
   mouseTilt?: MouseTiltConfig | null;
+  /** 0–1 intensity for emissive pulse effect (e.g. from scroll). When > 0, wireframe glows from within. */
+  pulseIntensity?: number;
   onLoaded?: () => void;
 }
 
@@ -154,10 +167,13 @@ function MainModelInner({
   scrollRotationX = 0,
   disableEntryAnimation = false,
   mouseTilt,
+  pulseIntensity = 0,
   onLoaded,
 }: MainModelProps) {
   const groupRef = useRef<Group>(null);
+  const timeRef = useRef(0);
   const matcapMaterial = useMemo(() => createSilverMatcapMaterial(), []);
+  const pulsableMaterial = useMemo(() => createPulsableWireframeMaterial(), []);
   const entryElapsed = useRef(0);
   const mousePos = useRef({ x: 0, y: 0 });
   const currentTilt = useRef({ x: 0, y: 0 });
@@ -189,22 +205,35 @@ function MainModelInner({
     return () => clearLoaderCache(modelType, modelPath);
   }, [modelType, modelPath]);
 
+  const activeMaterial = pulseIntensity > 0 ? pulsableMaterial : matcapMaterial;
+
   useLayoutEffect(() => {
     const group = groupRef.current;
     if (!group) return;
-    applyModelMaterial(group, matcapMaterial);
-  }, [matcapMaterial, modelPath, modelType]);
+    applyModelMaterial(group, activeMaterial);
+  }, [activeMaterial, modelPath, modelType]);
 
   useEffect(() => {
     return () => {
       matcapMaterial.dispose();
       matcapMaterial.matcap?.dispose();
+      pulsableMaterial.dispose();
     };
-  }, [matcapMaterial]);
+  }, [matcapMaterial, pulsableMaterial]);
 
   useFrame((_, delta) => {
     const group = groupRef.current;
     if (!group) return;
+
+    if (pulseIntensity > 0) {
+      timeRef.current += delta;
+      const t = timeRef.current;
+      const pulse = 0.5 + 0.5 * Math.sin(t * 2.5);
+      (pulsableMaterial as THREE.MeshStandardMaterial).emissiveIntensity =
+        pulseIntensity * (0.5 + pulse * 2.2);
+    } else {
+      (pulsableMaterial as THREE.MeshStandardMaterial).emissiveIntensity = 0;
+    }
 
     if (tiltConfig) {
       const { maxTilt, smoothness } = tiltConfig;

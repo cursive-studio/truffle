@@ -12,6 +12,8 @@ import ThirdSection from "@/components/sections/third";
 import FourthSection from "@/components/sections/fourth";
 import FifthSection from "@/components/sections/fifth";
 import Footer from "@/components/footer";
+import { HeroScene } from "@/components/HeroScene";
+import { HeroCanvas } from "@/components/HeroCanvas";
 
 const sections = [
   {
@@ -72,6 +74,13 @@ export default function Home() {
 
   return (
     <main className="relative w-screen overflow-x-hidden">
+      <div className="h-screen w-screen">
+        <HeroCanvas
+          scrollProgress={scrollProgress}
+          modelPath="/models/ttrr3.fbx"
+          modelType="fbx"
+        />
+      </div>
       {/* Fixed background: 3D model stays in place. */}
       <div className="fixed inset-0 z-0 h-screen w-screen">
         <MainCanvas
@@ -80,12 +89,7 @@ export default function Home() {
           scrollProgress={scrollProgress}
           scrollPoints={scrollPoints}
         />
-              {/* <MainCanvas
-          modelPath="/models/tuf.glb"
-          modelType="glb"
-          scrollProgress={scrollProgress}
-          scrollPoints={scrollPoints}
-        /> */}
+
       </div>
       <div>
 
