@@ -14,9 +14,10 @@ import {
 const DEFAULT_MAIN_MODEL_PATH = "/models/hitem3d.fbx";
 const DEFAULT_MAIN_MODEL_TYPE = "fbx" as HeroModelType;
 
-/** Default model scale and rotation when no scroll points. */
+/** Default model scale, rotation, and position when no scroll points. */
 const DEFAULT_SCALE = 800.2;
 const DEFAULT_ROTATION: [number, number, number] = [1.7, 3.3, 4.3];
+const DEFAULT_POSITION: [number, number, number] = [0, 0, 0];
 
 /** Ignore context lost in the first N ms to avoid false positives from Strict Mode / initial mount. */
 const CONTEXT_LOST_GRACE_MS = 300;
@@ -46,9 +47,14 @@ export function MainScene({
       return getModelStateAtScroll(scrollProgress, scrollPoints, {
         rotation: DEFAULT_ROTATION,
         scale: DEFAULT_SCALE,
+        position: DEFAULT_POSITION,
       });
     }
-    return { rotation: DEFAULT_ROTATION, scale: DEFAULT_SCALE };
+    return {
+      rotation: DEFAULT_ROTATION,
+      scale: DEFAULT_SCALE,
+      position: DEFAULT_POSITION,
+    };
   }, [scrollProgress, scrollPoints]);
 
   const isHeavyFormat =
@@ -163,6 +169,7 @@ export function MainScene({
             modelType={modelType}
             scale={modelState.scale}
             rotation={modelState.rotation}
+            position={modelState.position}
             disableEntryAnimation
             mouseTilt={{ maxTilt: 0.08, smoothness: 0.08 }}
             onLoaded={() => setModelLoaded(true)}

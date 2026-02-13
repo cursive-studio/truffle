@@ -97,6 +97,8 @@ interface MainModelProps {
   modelType?: HeroModelType;
   scale?: number;
   rotation?: [number, number, number];
+  /** Model position [x, y, z], e.g. from scroll progress. */
+  position?: [number, number, number];
   /** Y rotation in radians, e.g. from scroll progress. */
   scrollRotationY?: number;
   /** Z rotation in radians, e.g. from scroll progress. */
@@ -146,6 +148,7 @@ function MainModelInner({
   modelType = DEFAULT_MODEL_TYPE,
   scale = 1,
   rotation = [0, 0, 0],
+  position = [0, 0, 0],
   scrollRotationY = 0,
   scrollRotationZ = 0,
   scrollRotationX = 0,
@@ -217,6 +220,8 @@ function MainModelInner({
 
     const tiltX = currentTilt.current.x;
     const tiltY = currentTilt.current.y;
+
+    group.position.set(position[0], position[1], position[2]);
 
     if (disableEntryAnimation) {
       group.scale.setScalar(1);

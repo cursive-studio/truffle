@@ -10,14 +10,24 @@ export interface ScrollPoint {
   rotation?: [number, number, number];
   /** Model scale. */
   scale?: number;
+  /** Model position [x, y, z]. */
+  position?: [number, number, number];
 }
 
-/** Interpolate rotation and scale at a given scroll progress from keyframes. */
+/** Interpolate rotation, scale, and position at a given scroll progress from keyframes. */
 export function getModelStateAtScroll(
   scrollProgress: number,
   points: ScrollPoint[],
-  defaults: { rotation: [number, number, number]; scale: number }
-): { rotation: [number, number, number]; scale: number } {
+  defaults: {
+    rotation: [number, number, number];
+    scale: number;
+    position: [number, number, number];
+  }
+): {
+  rotation: [number, number, number];
+  scale: number;
+  position: [number, number, number];
+} {
   if (points.length === 0) {
     return defaults;
   }
@@ -29,12 +39,14 @@ export function getModelStateAtScroll(
     return {
       rotation: first.rotation ?? defaults.rotation,
       scale: first.scale ?? defaults.scale,
+      position: first.position ?? defaults.position,
     };
   }
   if (scrollProgress >= last.at) {
     return {
       rotation: last.rotation ?? defaults.rotation,
       scale: last.scale ?? defaults.scale,
+      position: last.position ?? defaults.position,
     };
   }
 
@@ -50,6 +62,8 @@ export function getModelStateAtScroll(
   const rotB = b.rotation ?? defaults.rotation;
   const scaleA = a.scale ?? defaults.scale;
   const scaleB = b.scale ?? defaults.scale;
+  const posA = a.position ?? defaults.position;
+  const posB = b.position ?? defaults.position;
 
   return {
     rotation: [
@@ -58,6 +72,11 @@ export function getModelStateAtScroll(
       rotA[2] + (rotB[2] - rotA[2]) * t,
     ],
     scale: scaleA + (scaleB - scaleA) * t,
+    position: [
+      posA[0] + (posB[0] - posA[0]) * t,
+      posA[1] + (posB[1] - posA[1]) * t,
+      posA[2] + (posB[2] - posA[2]) * t,
+    ],
   };
 }
 
@@ -69,9 +88,9 @@ const BASE_SCALE = 15.2;
 
 export const DEFAULT_SCROLL_POINTS: ScrollPoint[] = [
   { at: 0, rotation: [BASE_X, BASE_Y, BASE_Z], scale: BASE_SCALE },
-  { at: 0.15, rotation: [BASE_X, BASE_Y - Math.PI /2, BASE_Z + Math.PI * 0.5], scale: BASE_SCALE * 1.02 },
-  { at: 0.25, rotation: [BASE_X, BASE_Y - Math.PI /2, BASE_Z + Math.PI * 0.5], scale: BASE_SCALE * 1.02 },
-  { at: 0.5, rotation: [BASE_X, BASE_Y, BASE_Z + Math.PI], scale: BASE_SCALE * 0.98 },
-  { at: 0.75, rotation: [BASE_X, BASE_Y, BASE_Z + Math.PI * 1.5], scale: BASE_SCALE * 1.01 },
+  { at: 0.15, position: [-0.02, 0, 0], rotation: [BASE_X, BASE_Y - Math.PI /1.7, BASE_Z + Math.PI * 0.5], scale: BASE_SCALE * 1.2 },
+  { at: 0.25, position: [-0.02, 0, 0], rotation: [BASE_X, BASE_Y - Math.PI /1.7, BASE_Z + Math.PI * 0.5], scale: BASE_SCALE * 1.2 },
+  { at: 0.5, rotation: [BASE_X, BASE_Y, BASE_Z + Math.PI], scale: BASE_SCALE * 0, },
+  { at: 0.75, rotation: [BASE_X, BASE_Y, BASE_Z + Math.PI * 1.5], scale: BASE_SCALE * 0 },
   { at: 1, rotation: [BASE_X, BASE_Y, BASE_Z + Math.PI * 2], scale: BASE_SCALE },
 ];
