@@ -88,9 +88,12 @@ const BASE_SCALE = 15.2;
 
 export const DEFAULT_SCROLL_POINTS: ScrollPoint[] = [
   { at: 0, rotation: [BASE_X, BASE_Y, BASE_Z], scale: BASE_SCALE },
-  { at: 0.15, position: [-0.02, 0, 0], rotation: [BASE_X, BASE_Y - Math.PI /1.7, BASE_Z + Math.PI * 0.5], scale: BASE_SCALE * 1.2 },
-  { at: 0.25, position: [-0.02, 0, 0], rotation: [BASE_X, BASE_Y - Math.PI /1.7, BASE_Z + Math.PI * 0.5], scale: BASE_SCALE * 1.2 },
-  { at: 0.5, rotation: [BASE_X, BASE_Y, BASE_Z + Math.PI], scale: BASE_SCALE * 0, },
-  { at: 0.75, rotation: [BASE_X, BASE_Y, BASE_Z + Math.PI * 1.5], scale: BASE_SCALE * 0 },
+  { at: 0.15, position: [-0.02, 0, 0], rotation: [BASE_X, BASE_Y - Math.PI /1.8, BASE_Z + Math.PI * 0.5], scale: BASE_SCALE * 1.2 },
+  { at: 0.25, position: [-0.02, 0, 0], rotation: [BASE_X, BASE_Y - Math.PI /1.8, BASE_Z + Math.PI * 0.5], scale: BASE_SCALE * 1.2 },
+  { at: 0.5, position: [-0.02, 0, 0], rotation: [BASE_X, BASE_Y - Math.PI /1.8, BASE_Z + Math.PI * 0.5], scale: BASE_SCALE * 1.2 },
+  { at: 0.75, position: [-0.02, 0, 0], rotation: [BASE_X, BASE_Y - Math.PI /1.8, BASE_Z + Math.PI * 0.5], scale: BASE_SCALE * 1.2 },
+
+  // { at: 0.5, rotation: [BASE_X, BASE_Y, BASE_Z + Math.PI], scale: BASE_SCALE * 0, },
+  // { at: 0.75, rotation: [BASE_X, BASE_Y, BASE_Z + Math.PI * 1.5], scale: BASE_SCALE * 0 },
   { at: 1, rotation: [BASE_X, BASE_Y, BASE_Z + Math.PI * 2], scale: BASE_SCALE },
 ];

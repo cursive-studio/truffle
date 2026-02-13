@@ -40,8 +40,11 @@ const sections = [
 /** Number of full-viewport sections that slide in from the right. */
 const SECTION_COUNT = sections.length;
 
+/** Viewport heights of scroll per section. Higher = more space between sections (e.g. 150 = 1.5x longer). */
+const VH_PER_SECTION = 200;
+
 /** Total vertical scroll height (vh). User scrolls down; content translates left. */
-const TOTAL_SCROLL_VH = SECTION_COUNT * 100;
+const TOTAL_SCROLL_VH = SECTION_COUNT * VH_PER_SECTION;
 
 export default function Home() {
   const [scrollProgress, setScrollProgress] = useState(0);
