@@ -69,7 +69,8 @@ const BASE_SCALE = 15.2;
 
 export const DEFAULT_SCROLL_POINTS: ScrollPoint[] = [
   { at: 0, rotation: [BASE_X, BASE_Y, BASE_Z], scale: BASE_SCALE },
-  { at: 0.25, rotation: [BASE_X, BASE_Y, BASE_Z + Math.PI * 0.5], scale: BASE_SCALE * 1.02 },
+  { at: 0.15, rotation: [BASE_X, BASE_Y - Math.PI /2, BASE_Z + Math.PI * 0.5], scale: BASE_SCALE * 1.02 },
+  { at: 0.25, rotation: [BASE_X, BASE_Y - Math.PI /2, BASE_Z + Math.PI * 0.5], scale: BASE_SCALE * 1.02 },
   { at: 0.5, rotation: [BASE_X, BASE_Y, BASE_Z + Math.PI], scale: BASE_SCALE * 0.98 },
   { at: 0.75, rotation: [BASE_X, BASE_Y, BASE_Z + Math.PI * 1.5], scale: BASE_SCALE * 1.01 },
   { at: 1, rotation: [BASE_X, BASE_Y, BASE_Z + Math.PI * 2], scale: BASE_SCALE },

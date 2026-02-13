@@ -164,6 +164,7 @@ export function MainScene({
             scale={modelState.scale}
             rotation={modelState.rotation}
             disableEntryAnimation
+            mouseTilt={{ maxTilt: 0.08, smoothness: 0.08 }}
             onLoaded={() => setModelLoaded(true)}
           />
         </group>

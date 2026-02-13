@@ -82,6 +82,14 @@ function easeOutCubic(t: number): number {
   return 1 - (1 - t) ** 3;
 }
 
+/** Config for mouse-follow tilt effect. */
+export interface MouseTiltConfig {
+  /** Max tilt in radians (e.g. 0.08 for subtle, 0.15 for more pronounced). */
+  maxTilt?: number;
+  /** Lerp factor 0–1; lower = smoother/slower follow (e.g. 0.08). */
+  smoothness?: number;
+}
+
 interface MainModelProps {
   /** Path to the model (e.g. /models/truffle.glb or /models/hero.obj) */
   modelPath?: string;
@@ -98,6 +106,8 @@ interface MainModelProps {
   scrollRotationX?: number;
   /** If true, skip the scale/rotation entry animation and show at final state. */
   disableEntryAnimation?: boolean;
+  /** Mouse-follow tilt. Omit or pass null to disable. */
+  mouseTilt?: MouseTiltConfig | null;
   onLoaded?: () => void;
 }
 
@@ -126,6 +136,11 @@ function ModelFallback() {
   return <group />;
 }
 
+const DEFAULT_MOUSE_TILT: Required<MouseTiltConfig> = {
+  maxTilt: 0.08,
+  smoothness: 0.08,
+};
+
 function MainModelInner({
   modelPath = DEFAULT_MODEL_PATH,
   modelType = DEFAULT_MODEL_TYPE,
@@ -135,11 +150,29 @@ function MainModelInner({
   scrollRotationZ = 0,
   scrollRotationX = 0,
   disableEntryAnimation = false,
+  mouseTilt,
   onLoaded,
 }: MainModelProps) {
   const groupRef = useRef<Group>(null);
   const matcapMaterial = useMemo(() => createSilverMatcapMaterial(), []);
   const entryElapsed = useRef(0);
+  const mousePos = useRef({ x: 0, y: 0 });
+  const currentTilt = useRef({ x: 0, y: 0 });
+
+  const tiltConfig = mouseTilt
+    ? { ...DEFAULT_MOUSE_TILT, ...mouseTilt }
+    : null;
+
+  useEffect(() => {
+    if (!tiltConfig) return;
+    const handleMove = (e: MouseEvent) => {
+      const x = (e.clientX / window.innerWidth) * 2 - 1;
+      const y = 1 - (e.clientY / window.innerHeight) * 2;
+      mousePos.current = { x, y };
+    };
+    window.addEventListener("mousemove", handleMove, { passive: true });
+    return () => window.removeEventListener("mousemove", handleMove);
+  }, [!!mouseTilt]);
 
   useEffect(() => {
     onLoaded?.();
@@ -170,10 +203,25 @@ function MainModelInner({
     const group = groupRef.current;
     if (!group) return;
 
+    if (tiltConfig) {
+      const { maxTilt, smoothness } = tiltConfig;
+      const targetX = mousePos.current.y * maxTilt;
+      const targetY = mousePos.current.x * maxTilt;
+      const lerp = 1 - Math.exp(-smoothness * 60 * delta);
+      currentTilt.current.x += (targetX - currentTilt.current.x) * lerp;
+      currentTilt.current.y += (targetY - currentTilt.current.y) * lerp;
+    } else {
+      currentTilt.current.x = 0;
+      currentTilt.current.y = 0;
+    }
+
+    const tiltX = currentTilt.current.x;
+    const tiltY = currentTilt.current.y;
+
     if (disableEntryAnimation) {
       group.scale.setScalar(1);
-      group.rotation.x = rotation[0];
-      group.rotation.y = rotation[1];
+      group.rotation.x = rotation[0] + scrollRotationX + tiltX;
+      group.rotation.y = rotation[1] + scrollRotationY + tiltY;
       group.rotation.z = rotation[2] + scrollRotationZ;
     } else {
       entryElapsed.current += delta;
@@ -182,13 +230,13 @@ function MainModelInner({
 
       if (t < 1) {
         group.scale.setScalar(eased);
-        group.rotation.x = rotation[0] * eased + scrollRotationX;
-        group.rotation.y = rotation[1] * eased ;
-        group.rotation.z = rotation[2] * eased ;
+        group.rotation.x = rotation[0] * eased + scrollRotationX + tiltX;
+        group.rotation.y = rotation[1] * eased + tiltY;
+        group.rotation.z = rotation[2] * eased;
       } else {
         group.scale.setScalar(1);
-        group.rotation.x = rotation[0] + scrollRotationX;
-        group.rotation.y = rotation[1];
+        group.rotation.x = rotation[0] + scrollRotationX + tiltX;
+        group.rotation.y = rotation[1] + scrollRotationY + tiltY;
         group.rotation.z = rotation[2] + scrollRotationZ;
       }
     }
