@@ -1,20 +1,73 @@
 "use client";
 
-import { useRef, Suspense, useEffect, useMemo } from "react";
+import { useRef, Suspense, useEffect } from "react";
 import { useFrame, useLoader } from "@react-three/fiber";
 import { useGLTF, useFBX } from "@react-three/drei";
 import * as THREE from "three";
 import type { Group } from "three";
+
+/** Project world-space box to screen-space pixel rect. */
+function projectBoxToScreen(
+  box: THREE.Box3,
+  camera: THREE.Camera,
+  width: number,
+  height: number
+): { left: number; right: number; top: number; bottom: number } | null {
+  const corners: THREE.Vector3[] = [];
+  const min = box.min;
+  const max = box.max;
+  corners.push(new THREE.Vector3(min.x, min.y, min.z));
+  corners.push(new THREE.Vector3(max.x, min.y, min.z));
+  corners.push(new THREE.Vector3(min.x, max.y, min.z));
+  corners.push(new THREE.Vector3(max.x, max.y, min.z));
+  corners.push(new THREE.Vector3(min.x, min.y, max.z));
+  corners.push(new THREE.Vector3(max.x, min.y, max.z));
+  corners.push(new THREE.Vector3(min.x, max.y, max.z));
+  corners.push(new THREE.Vector3(max.x, max.y, max.z));
+
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minY = Infinity;
+  let maxY = -Infinity;
+  let anyVisible = false;
+
+  const v = new THREE.Vector3();
+  for (const corner of corners) {
+    v.copy(corner).project(camera);
+    if (v.z >= -1 && v.z <= 1) {
+      anyVisible = true;
+      const px = ((v.x + 1) / 2) * width;
+      const py = (1 - (v.y + 1) / 2) * height;
+      minX = Math.min(minX, px);
+      maxX = Math.max(maxX, px);
+      minY = Math.min(minY, py);
+      maxY = Math.max(maxY, py);
+    }
+  }
+
+  if (!anyVisible) return null;
+  return { left: minX, right: maxX, top: minY, bottom: maxY };
+}
+
+function rectsOverlap(
+  a: { left: number; right: number; top: number; bottom: number },
+  b: { left: number; right: number; top: number; bottom: number }
+): boolean {
+  return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+}
+
 import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import { USDLoader } from "three/examples/jsm/loaders/USDLoader.js";
 import {
-  createTruffleMaterial,
+  getSharedGlossyMaterial,
+  getSharedWireframeMaterial,
   applyTruffleMaterialToMesh,
+  applyMaterialToMesh,
 } from "@/lib/trufflePreset";
 
 export type HeroModelType = "glb" | "obj" | "fbx" | "usdz";
 
-const DEFAULT_MODEL_PATH = "/models/truffleOS_machine_v4-compressed.glb";
+const DEFAULT_MODEL_PATH = "/models/truffle-os-latest.glb";
 const DEFAULT_MODEL_TYPE: HeroModelType = "glb";
 
 function clearLoaderCache(type: HeroModelType, path: string) {
@@ -63,6 +116,8 @@ interface MainModelProps {
   mouseTilt?: MouseTiltConfig | null;
   /** 0–1 intensity for emissive pulse effect (e.g. from scroll). When > 0, mesh glows from within. */
   pulseIntensity?: number;
+  /** 0–1 scroll progress; when in glass section range, enables x-ray wireframe when model overlaps glass. */
+  scrollProgress?: number;
   onLoaded?: () => void;
 }
 
@@ -96,6 +151,9 @@ const DEFAULT_MOUSE_TILT: Required<MouseTiltConfig> = {
   smoothness: 0.08,
 };
 
+const GLASS_SECTION_START = 0.55;
+const GLASS_SECTION_END = 0.95;
+
 function MainModelInner({
   modelPath = DEFAULT_MODEL_PATH,
   modelType = DEFAULT_MODEL_TYPE,
@@ -108,6 +166,7 @@ function MainModelInner({
   disableEntryAnimation = false,
   mouseTilt,
   pulseIntensity = 0,
+  scrollProgress = 0,
   onLoaded,
 }: MainModelProps) {
   const groupRef = useRef<Group>(null);
@@ -117,13 +176,12 @@ function MainModelInner({
   const entryElapsed = useRef(0);
   const mousePos = useRef({ x: 0, y: 0 });
   const currentTilt = useRef({ x: 0, y: 0 });
+  const box3Ref = useRef(new THREE.Box3());
+  const wireframeTarget = useRef(false);
+  const wireframeProgress = useRef(0);
 
-  const truffleMaterial = useMemo(() => {
-    const mat = createTruffleMaterial();
-    mat.emissive = new THREE.Color(0x000000);
-    mat.emissiveIntensity = 0;
-    return mat;
-  }, []);
+  const material = getSharedGlossyMaterial();
+  const wireframeMaterial = getSharedWireframeMaterial();
 
   const tiltConfig = mouseTilt
     ? { ...DEFAULT_MOUSE_TILT, ...mouseTilt }
@@ -153,42 +211,75 @@ function MainModelInner({
     return () => clearLoaderCache(modelType, modelPath);
   }, [modelType, modelPath]);
 
-  // Dispose material on unmount
-  useEffect(() => {
-    return () => { truffleMaterial.dispose(); };
-  }, [truffleMaterial]);
+  // No dispose needed — MeshStandardMaterial without textures is trivially small.
+  // Disposing eagerly causes a flash in Strict Mode because the shared meshes
+  // briefly render with an invalidated material before the new one is applied.
 
-  useFrame((_, delta) => {
+  useFrame((state, delta) => {
     const group = groupRef.current;
     if (!group) return;
 
+    // X-ray wireframe: when model overlaps glass panel (section 4), show wireframe.
+    const inGlassSection =
+      scrollProgress >= GLASS_SECTION_START && scrollProgress <= GLASS_SECTION_END;
+    if (inGlassSection) {
+      box3Ref.current.setFromObject(group);
+      const modelRect = projectBoxToScreen(
+        box3Ref.current,
+        state.camera,
+        state.size.width,
+        state.size.height
+      );
+      const glassRect = {
+        left: state.size.width * 0.1,
+        right: state.size.width * 0.9,
+        top: state.size.height * 0.1,
+        bottom: state.size.height * 0.9,
+      };
+      wireframeTarget.current =
+        modelRect !== null && rectsOverlap(modelRect, glassRect);
+    } else {
+      wireframeTarget.current = false;
+    }
+    const WIREFRAME_LERP_SPEED = 4;
+    const lerpFactor = 1 - Math.exp(-WIREFRAME_LERP_SPEED * delta);
+    wireframeProgress.current +=
+      ((wireframeTarget.current ? 1 : 0) - wireframeProgress.current) *
+      lerpFactor;
+    const showWireframe = wireframeProgress.current > 0.5;
+
     // Apply material to meshes every frame until successful.
-    // This handles async model loading, Strict Mode double-mounts, and key-based remounts.
     if (!materialAppliedRef.current) {
       let meshCount = 0;
       group.traverse((obj) => {
         if (obj instanceof THREE.Mesh && obj.isMesh) meshCount++;
       });
       if (meshCount > 0) {
-        applyTruffleMaterialToMesh(group, truffleMaterial);
+        applyTruffleMaterialToMesh(group, material);
         materialAppliedRef.current = true;
       }
     }
+
+    // Swap to wireframe material when active — MeshPhysicalMaterial+transmission
+    // doesn't render wireframe correctly, so we use MeshBasicMaterial instead.
+    const activeMaterial = showWireframe ? wireframeMaterial : material;
+    applyMaterialToMesh(group, activeMaterial);
 
     bounceTimeRef.current += delta;
     const bt = bounceTimeRef.current;
     const bounceY = 0.003 * Math.sin(bt * 0.1);
     const bounceScale = 1 + 0.004 * Math.sin(bt * 1.8 + 0.3);
 
-    // Pulse emissive glow
+    // Subtle white glow when pulse active (matches TestModelView base look otherwise)
     if (pulseIntensity > 0) {
       timeRef.current += delta;
       const t = timeRef.current;
       const pulse = 0.5 + 0.5 * Math.sin(t * 2.5);
-      truffleMaterial.emissive.setHex(0xaaddff);
-      truffleMaterial.emissiveIntensity = pulseIntensity * (0.3 + pulse * 0.6);
+      material.emissive.set("#e8ecf0");
+      material.emissiveIntensity = pulseIntensity * (0.08 + pulse * 0.12);
     } else {
-      truffleMaterial.emissiveIntensity = 0;
+      material.emissive.set("#000000");
+      material.emissiveIntensity = 0;
     }
 
     if (tiltConfig) {

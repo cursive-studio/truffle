@@ -46,14 +46,18 @@ export default function RootLayout({
           ${instrumentSans.variable} antialiased`
         }
       >
-        <header className="fixed top-10 left-10 w-full h-16 flex items-center justify-between z-999999999">
-          <Link href="/">
+        <header className="fixed top-0 left-0 w-full h-16 flex items-center justify-between z-999999999 px-8">
+          <Link href="/" className="flex items-center gap-4">
            <p className="px-0 mx-0 text-white" style={{ fontFamily: 'var(--font-instrument-sans)', fontSize: '32px', }}>truffle <span className="px-0 mx-0 text-white" style={{ fontFamily: 'var(--font-geist-pixel-triangle)', fontSize: '32px',  }}>os</span></p>
           </Link>
+
+          <div className="flex items-center gap-8 uppercase">
+            <Link href="#hardware" className="text-white hover:text-white transition-colors" style={{ fontFamily: 'var(--font-geist)', fontSize: '15px', }}>Hardware</Link>
+            <Link href="/#order" className="text-white hover:text-white transition-colors" style={{ fontFamily: 'var(--font-geist)', fontSize: '15px', }}>Order</Link>
+          </div>
         </header>
         {children}
         <PreOrder />
-        <Footer />
       </body>
     </html>
 

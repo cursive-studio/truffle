@@ -3,7 +3,7 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import type { WebGLRenderer } from "three";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
+import { OrbitControls, Environment } from "@react-three/drei";
 import { MainModel, type HeroModelType } from "@/components/MainModel";
 import {
   getModelStateAtScroll,
@@ -11,13 +11,13 @@ import {
   type ScrollPoint,
 } from "@/config/scrollPoints";
 
-/** Default hero model when not passed via props (e.g. from route). */
-const DEFAULT_MAIN_MODEL_PATH = "/models/t.usdz";
-const DEFAULT_MAIN_MODEL_TYPE = "usdz" as HeroModelType;
+/** Default hero model when not passed via props (e.g. from route). Matches /test. */
+// const DEFAULT_MAIN_MODEL_PATH = "/models/truffle-os-latest.glb";
+// const DEFAULT_MAIN_MODEL_TYPE = "glb" as HeroModelType;
 
 /** Default model scale, rotation, and position when no scroll points. */
-const DEFAULT_SCALE = 400.2;
-const DEFAULT_ROTATION: [number, number, number] = [1.7, 3.3, 4.3];
+const DEFAULT_SCALE = 200.2;
+const DEFAULT_ROTATION: [number, number, number] = [1, 3, 4.3];
 const DEFAULT_POSITION: [number, number, number] = [0, 0, 0];
 
 /** Ignore context lost in the first N ms to avoid false positives from Strict Mode / initial mount. */
@@ -40,8 +40,8 @@ export function MainScene({
   scrollProgress = 0,
   scrollPoints,
 }: MainSceneProps = {}) {
-  const modelPath = modelPathProp ?? DEFAULT_MAIN_MODEL_PATH;
-  const modelType = modelTypeProp ?? DEFAULT_MAIN_MODEL_TYPE;
+  const modelPath = modelPathProp 
+  const modelType = modelTypeProp
 
   const modelState = useMemo(() => {
     if (scrollPoints && scrollPoints.length > 0) {
@@ -149,11 +149,16 @@ export function MainScene({
         dpr={1}
         onCreated={onCreated}
       >
-        <color attach="background" args={["#0a0a0a"]} />
-        <ambientLight intensity={0.6} color="#ffffff" />
-        <directionalLight position={[5, 5, 5]} intensity={1.5} color="#ffffff" />
-        <directionalLight position={[-5, 3, -3]} intensity={0.8} color="#c0d0ff" />
-        <directionalLight position={[0, -3, 5]} intensity={0.4} color="#ffffff" />
+        <color attach="background" args={["#0a0a0f"]} />
+        {/* Studio rim lighting (from /test) — edge glow, soft fill */}
+        <ambientLight intensity={0.5} color="#e8ecf0" />
+        <directionalLight position={[4, 5, 6]} intensity={1.2} color="#ffffff" />
+        <directionalLight position={[-5, 4, 5]} intensity={1.5} color="#e8f0ff" />
+        <directionalLight position={[0, 6, -4]} intensity={1.8} color="#ffffff" />
+        <directionalLight position={[-4, -2, 6]} intensity={0.9} color="#d8e4f0" />
+        <Environment background={false} resolution={128} frames={1}>
+          <color attach="background" args={["#303848"]} />
+        </Environment>
         <OrbitControls
           enableZoom={false}
           enablePan={false}
@@ -175,6 +180,7 @@ export function MainScene({
                 ? getPulseIntensityAtScroll(scrollProgress, scrollPoints)
                 : 0
             }
+            scrollProgress={scrollProgress}
             onLoaded={() => setModelLoaded(true)}
           />
         </group>

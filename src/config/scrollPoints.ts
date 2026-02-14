@@ -99,18 +99,18 @@ export function getPulseIntensityAtScroll(
 }
 
 /** Example: model spins on Z axis over scroll (one full turn). Scale kept small to avoid GPU overload. */
-const BASE_X = 1.7;
-const BASE_Y = 3.3;
+const BASE_X = 4.5;
+const BASE_Y = 4.8;
 const BASE_Z = 4.3;
-const BASE_SCALE = 10.2;
+const BASE_SCALE = 0.015;
 
 export const DEFAULT_SCROLL_POINTS: ScrollPoint[] = [
   { at: 0, rotation: [BASE_X, BASE_Y, BASE_Z], scale: BASE_SCALE },
   { at: 0.15, position: [-0.02, 0, 0], rotation: [BASE_X, BASE_Y, BASE_Z], scale: BASE_SCALE * 1.8 },
   { at: 0.25, position: [-0.02, 0, 0], rotation: [BASE_X, BASE_Y, BASE_Z], scale: BASE_SCALE * 1.8 },
-  { at: 0.5, position: [-0.02, 0, 0], rotation: [BASE_X, BASE_Y, BASE_Z + Math.PI], scale: BASE_SCALE * 1.8 },
+  { at: 0.5, position: [-0.02, 0, 0], rotation: [BASE_X, BASE_Y, BASE_Z], scale: BASE_SCALE * 1.8 },
 
-  { at: 0.75, position: [0.032, 0.010, 0], rotation: [BASE_X, BASE_Y, BASE_Z + Math.PI ], scale: BASE_SCALE * 1.8 },
+  { at: 0.75, position: [0.032, 0.005, 0], rotation: [BASE_X, BASE_Y, BASE_Z  ], scale: BASE_SCALE * 1.8 },
   { at: 0.85, position: [0.032, 0.010, 0], rotation: [BASE_X, BASE_Y, BASE_Z], scale: BASE_SCALE * 0.8, },
 
   // { at: 0.5, rotation: [BASE_X, BASE_Y, BASE_Z + Math.PI], scale: BASE_SCALE * 0, },

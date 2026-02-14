@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { Component, type ReactNode } from "react";
+import { TestModelScene } from "./TestModelScene";
 
 const MainScene = dynamic(() => import("./MainScene").then((m) => m.MainScene), {
   ssr: false,
@@ -67,12 +68,19 @@ export function MainCanvas({
 }: MainCanvasProps) {
   return (
     <SceneErrorBoundary>
+        {/* <TestModelScene
+          modelPath={modelPath}
+          modelType={modelType}
+          scrollProgress={scrollProgress}
+          scrollPoints={scrollPoints}
+        /> */}
       <MainScene
         modelPath={modelPath}
         modelType={modelType}
         scrollProgress={scrollProgress}
         scrollPoints={scrollPoints}
       />
+
     </SceneErrorBoundary>
   );
 }

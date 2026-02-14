@@ -84,8 +84,8 @@ export default function Home() {
       {/* Fixed background: 3D model stays in place. */}
       <div className="fixed inset-0 z-0 h-screen w-screen">
         <MainCanvas
-          // modelPath="/models/truffleOS_machine_v4-compressed.glb"
-          // modelType="glb"
+          modelPath="/models/truffle-os-latest.glb"
+          modelType="glb"
           scrollProgress={scrollProgress}
           scrollPoints={scrollPoints}
         />
